@@ -135,6 +135,13 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
 .endChip.on{color:#fff;border-color:var(--accent);background:rgba(236,72,153,.18)}
 #ver{position:absolute;right:8px;bottom:2px;font-size:11px;color:rgba(255,255,255,.35);z-index:20;pointer-events:none}
 .hidden{display:none!important}
+/* 手機、平板（觸控裝置）直拿時：蓋住畫面，請玩家轉成橫向。電腦（滑鼠）不受影響 */
+#rotate{display:none;position:fixed;inset:0;z-index:100;background:#0d0f17;color:#f2f2f7;
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:18px}
+#rotate .phone{width:64px;height:110px;border:5px solid #f9a8d4;border-radius:14px;animation:turn 2s ease-in-out infinite}
+#rotate b{font-size:22px} #rotate span{color:#a4a8bd;font-size:16px;line-height:1.6}
+@keyframes turn{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (pointer:coarse){ #rotate{display:flex} }
 </style>
 </head>
 <body>
@@ -150,14 +157,15 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   </div>
   <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
   <div id="ov" class="overlay hidden"></div>
-  <div id="ver">v2.4</div>
+  <div id="ver">v2.5</div>
+  <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="story.js?v=2.4"></script>
-<script src="figs.js?v=2.4"></script>
+<script src="story.js?v=2.5"></script>
+<script src="figs.js?v=2.5"></script>
 <script>
 'use strict';
-const VERSION = 'v2.4';
+const VERSION = 'v2.5';
 const SAVE_KEY = 'qinyu_love_save_v1';
 const DEV = /[?&]dev=1/.test(location.search);
 const $ = id => document.getElementById(id);
@@ -620,7 +628,12 @@ function resumeView(){
     const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     try {
       if (fsEl) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-      else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      else {
+        const r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+        // Android 全螢幕時可以鎖定橫向；iPhone/iPad 不支援，會靠「請轉橫向」提示
+        const lockLand = () => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e2) {} };
+        if (r && r.then) r.then(lockLand).catch(() => {}); else lockLand();
+      }
     } catch (err) {}
   };
 })();
