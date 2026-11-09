@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>秦宇的愛情</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f17; --panel:rgba(14,16,28,.88); --panel2:#171a2b; --line:rgba(255,255,255,.14);
+  --text:#f2f2f7; --dim:#a4a8bd; --accent:#f472b6; --accent2:#60a5fa; --gold:#fbbf24;
+  --ok:#34d399; --bad:#f87171;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%}
+button{font-family:inherit;color:inherit;cursor:pointer}
+#app{position:fixed;inset:0;overflow:hidden}
+
+/* 背景 */
+#bg{position:absolute;inset:0;transition:background-color .6s}
+#bg .grad{position:absolute;inset:0;background:
+  linear-gradient(160deg,rgba(255,255,255,.10),transparent 40%),
+  linear-gradient(0deg,rgba(0,0,0,.55),transparent 55%)}
+#bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s}
+#bg img.on{opacity:1}
+#bgLabel{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
+  font-size:clamp(28px,6vw,64px);font-weight:900;letter-spacing:.2em;color:rgba(255,255,255,.10);pointer-events:none}
+
+/* 角色 */
+#chars{position:absolute;left:0;right:0;bottom:0;height:78%;display:flex;justify-content:center;align-items:flex-end;gap:2%;pointer-events:none;padding:0 4%}
+.char{height:100%;flex:0 1 30%;max-width:340px;display:flex;align-items:flex-end;justify-content:center;transition:filter .3s,transform .3s;filter:brightness(.55) saturate(.7);transform:translateY(8px)}
+.char.talk{filter:none;transform:none}
+.char img{max-height:100%;max-width:100%;object-fit:contain}
+.ph{width:100%;height:88%;position:relative;display:flex;align-items:flex-end;justify-content:center}
+.ph svg{height:100%;width:auto;max-width:100%}
+.ph span{position:absolute;top:18%;left:50%;transform:translateX(-50%);font-weight:900;font-size:clamp(14px,2.4vw,22px);
+  background:rgba(0,0,0,.5);padding:2px 10px;border-radius:999px;white-space:nowrap}
+
+/* 上方列 */
+#top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;
+  background:linear-gradient(180deg,rgba(0,0,0,.6),transparent);z-index:5}
+#chapWrap{flex:1;min-width:0}
+#chap{display:inline-block;max-width:100%;font-size:clamp(13px,1.8vw,16px);font-weight:700;color:#f2f2f7;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+#chap:empty{display:none}
+#scoreBox{font-weight:900;font-size:clamp(15px,2.2vw,20px);color:var(--gold);background:rgba(0,0,0,.45);padding:4px 12px;border-radius:999px;border:1px solid rgba(251,191,36,.4)}
+.iconBtn{background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:10px;min-width:40px;height:38px;font-size:18px}
+
+/* 對話框 */
+#box{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);width:min(960px,calc(100% - 24px));
+  min-height:clamp(120px,22vh,190px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px 22px 20px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:4;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#name{position:absolute;top:-16px;left:18px;font-weight:900;font-size:clamp(15px,2.2vw,19px);padding:4px 16px;border-radius:10px;background:#333;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#name:empty{display:none}
+#text{font-size:clamp(17px,2.5vw,22px);line-height:1.75;min-height:3.5em;white-space:pre-wrap}
+#text.narr{color:#dfe2f0;font-style:normal}
+#next{position:absolute;right:18px;bottom:10px;color:var(--accent);animation:bob 1s infinite;font-size:14px}
+@keyframes bob{50%{transform:translateY(4px)}}
+
+/* 覆蓋層 */
+.overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,6,12,.72);overflow-y:auto}
+/* 題目、選項：放在畫面下方（對話框位置），上方立繪保持可見 */
+.overlay.bottom{align-items:flex-end;background:linear-gradient(0deg,rgba(5,6,12,.55),transparent 60%);padding:0 12px calc(env(safe-area-inset-bottom) + 14px)}
+.overlay.bottom .card{width:min(960px,100%);max-height:62%;background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:18px;padding:16px 18px}
+.overlay.bottom .opts{display:grid;grid-template-columns:1fr;gap:0 10px}
+@media (min-width:700px){ .overlay.bottom .opts.two{grid-template-columns:1fr 1fr} }
+.overlay.bottom .btn{margin:6px 0;padding:11px 14px}
+body.ovBottom #box{visibility:hidden}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:22px;width:min(720px,100%);max-height:calc(100% - 8px);overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.btn{display:block;width:100%;text-align:left;background:#22263b;border:2px solid #343a58;border-radius:14px;padding:14px 16px;margin:10px 0;font-size:clamp(16px,2.3vw,19px);line-height:1.5;transition:transform .1s,background .15s,border-color .15s}
+.btn:active{transform:scale(.98)}
+.btn.sel{border-color:var(--accent);background:#3a2340}
+.btn.primary{text-align:center;background:linear-gradient(135deg,#ec4899,#8b5cf6);border:none;font-weight:900}
+.btn.ghost{text-align:center;background:transparent}
+.btn[disabled]{opacity:.45}
+.qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--gold);font-weight:900}
+.qhead .tag{background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);padding:2px 10px;border-radius:999px;font-size:14px}
+.qprompt{font-size:clamp(17px,2.5vw,21px);line-height:1.7;margin:6px 0 4px;white-space:pre-wrap}
+.qtip{color:var(--dim);font-size:14px;margin-bottom:4px}
+.qfig{display:block;margin:8px auto;max-width:100%;max-height:34vh;text-align:center}
+.qfig svg{max-width:100%;max-height:34vh;height:auto;width:auto;border-radius:12px}
+img.qfig{border-radius:12px;object-fit:contain}
+/* 有圖的題目：橫向螢幕時左邊題目＋圖、右邊選項 */
+@media (min-width:700px) and (orientation:landscape){
+  .card.hasFig .qgrid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start}
+  .card.hasFig .opts.two{grid-template-columns:1fr}
+  .card.hasFig .qfig, .card.hasFig .qfig svg{max-height:42vh}
+  .overlay.bottom .card.hasFig{max-height:72%}
+}
+.lab{display:inline-block;min-width:2em;font-weight:900;color:var(--accent2)}
+.inputRow{display:flex;gap:8px;align-items:center;margin:14px 0}
+.inputRow input{flex:1;min-width:0;font-size:24px;padding:12px 14px;border-radius:12px;border:2px solid #343a58;background:#0f1120;color:var(--text);font-family:inherit}
+.inputRow .unit{font-size:20px;color:var(--dim)}
+.seq{min-height:52px;border:2px dashed #3d4466;border-radius:12px;padding:10px 12px;font-size:22px;font-weight:900;letter-spacing:.3em;margin:10px 0}
+.fb{margin-top:8px;font-weight:900;font-size:18px;min-height:1.4em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.dev{color:#22d3ee;font-size:13px;margin-top:6px}
+.chapCard{text-align:center;animation:fade .5s}
+.chapCard h1{font-size:clamp(28px,6vw,52px);margin:0 0 10px;letter-spacing:.08em;background:linear-gradient(135deg,#f9a8d4,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.chapCard h2{font-size:clamp(20px,4vw,32px);margin:0;color:#e5e7f0}
+.chapCard p{color:var(--dim);margin-top:26px}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}}
+.title h1{font-size:clamp(40px,9vw,80px);margin:0;letter-spacing:.1em;background:linear-gradient(135deg,#f9a8d4,#fde68a,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+.title .subt{text-align:center;color:var(--dim);margin:6px 0 24px}
+label.f{display:block;color:var(--dim);font-size:15px;margin:10px 0 4px}
+input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border:2px solid #343a58;background:#0f1120;color:var(--text);font-family:inherit}
+
+/* 成績卡 */
+.result{text-align:center}
+.result .who{font-size:clamp(24px,5vw,36px);font-weight:900;margin:4px 0}
+.result .big{font-size:clamp(56px,14vw,110px);font-weight:900;color:var(--gold);line-height:1.1;text-shadow:0 0 30px rgba(251,191,36,.35)}
+.result .max{font-size:clamp(18px,3vw,24px);color:var(--dim)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+.stats div{background:#0f1120;border-radius:12px;padding:10px;font-size:15px;color:var(--dim)}
+.stats b{display:block;font-size:22px;color:var(--text)}
+.badge{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:900;margin:6px 0}
+.badge.clear{background:rgba(52,211,153,.18);color:var(--ok);border:1px solid rgba(52,211,153,.5)}
+.badge.prog{background:rgba(96,165,250,.15);color:var(--accent2);border:1px solid rgba(96,165,250,.4)}
+
+#ver{position:absolute;right:8px;bottom:2px;font-size:11px;color:rgba(255,255,255,.35);z-index:20;pointer-events:none}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bg"><img id="bgImg" alt=""><div class="grad"></div><div id="bgLabel"></div></div>
+  <div id="chars"></div>
+  <div id="top">
+    <div id="chapWrap"><div id="chap"></div></div>
+    <div id="scoreBox">積分 0</div>
+    <button class="iconBtn" id="fsBtn" title="全螢幕">⛶</button>
+    <button class="iconBtn" id="menuBtn" title="選單">☰</button>
+  </div>
+  <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
+  <div id="ov" class="overlay hidden"></div>
+  <div id="ver">v0.8</div>
+</div>
+
+<script src="story.js?v=0.8"></script>
+<script src="figs.js?v=0.8"></script>
+<script>
+'use strict';
+const VERSION = 'v0.8';
+const SAVE_KEY = 'qinyu_love_save_v1';
+const DEV = /[?&]dev=1/.test(location.search);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LETTERS = 'ABCDEFGHIJKLMNOP'.split('');
+const JIA = '甲乙丙丁戊己庚辛壬癸'.split('');
+const labelsOf = (q) => q.labels === 'jia' ? JIA : LETTERS;
+const MAX_SCORE = Object.values(QUESTIONS).reduce((s, q) => s + (q.pts || 10), 0);
+
+/* ---------- 存檔（壞掉或缺欄位都不會當機） ---------- */
+function storeGet(){ try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch(e){ return null; } }
+function storeSet(o){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(o)); } catch(e){} }
+function fixState(s){
+  if (!s || typeof s !== 'object') return null;
+  return {
+    name: String(s.name || ''), scene: STORY.scenes[s.scene] ? s.scene : STORY.start,
+    idx: Number.isInteger(s.idx) && s.idx >= 0 ? s.idx : 0,
+    score: Number(s.score) || 0, done: s.done && typeof s.done === 'object' ? s.done : {},
+    missed: s.missed && typeof s.missed === 'object' ? s.missed : {},
+    wrong: Number(s.wrong) || 0, plays: Number(s.plays) || 1, playMs: Number(s.playMs) || 0,
+    bg: s.bg || null, show: Array.isArray(s.show) ? s.show : [], needCard: !!s.needCard,
+    cleared: !!s.cleared, ended: !!s.ended, started: s.started || Date.now(),
+  };
+}
+let S = fixState(storeGet());
+function save(){ if (S) storeSet(S); }
+// 重新計分（防止存檔被改過或題目改版後分數對不上）
+function recalcScore(){ S.score = Object.keys(S.done).reduce((t, k) => t + (QUESTIONS[k] ? (S.done[k] ? (QUESTIONS[k].pts || 10) : 0) : 0), 0); }
+
+/* ---------- 遊戲時間（只算畫面在前景的時間） ---------- */
+setInterval(() => { if (S && !document.hidden && !S.ended) { S.playMs += 1000; if (S.playMs % 10000 === 0) save(); } }, 1000);
+
+/* ---------- 畫面 ---------- */
+const bgCache = {};
+function setBg(key){
+  const b = STORY.bgs[key] || { name:'', color:'#222' };
+  $('bg').style.backgroundColor = b.color;
+  $('bgLabel').textContent = b.name;
+  const img = $('bgImg'); img.classList.remove('on');
+  if (bgCache[key] === false) return;
+  img.onload = () => { bgCache[key] = true; img.classList.add('on'); $('bgLabel').textContent=''; };
+  img.onerror = () => { bgCache[key] = false; };
+  img.src = 'img/bg_' + key + '.jpg';
+}
+function silhouette(color, id){
+  const gid = 'g_' + id;
+  return `<svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".95"/><stop offset="1" stop-color="${color}" stop-opacity=".35"/></linearGradient></defs>
+  <circle cx="50" cy="38" r="24" fill="url(#${gid})"/><path d="M10 200 C10 120 25 72 50 72 C75 72 90 120 90 200Z" fill="url(#${gid})"/></svg>`;
+}
+const charImgOk = {};
+function renderChars(speaker){
+  const box = $('chars'); box.innerHTML = '';
+  (S.show || []).forEach(id => {
+    const c = STORY.chars[id] || { name:id, color:'#888' };
+    const d = document.createElement('div');
+    d.className = 'char' + (id === speaker || !speaker ? ' talk' : '');
+    const ph = `<div class="ph">${silhouette(c.color, id)}<span>${esc(c.name)}</span></div>`;
+    if (charImgOk[id] === false) { d.innerHTML = ph; }
+    else {
+      const im = new Image(); im.alt = c.name;
+      im.onload = () => { charImgOk[id] = true; };
+      im.onerror = () => { charImgOk[id] = false; d.innerHTML = ph; };
+      im.src = 'img/char_' + id + '.png';
+      d.appendChild(im);
+    }
+    box.appendChild(d);
+  });
+}
+function setChapter(){
+  const sc = STORY.scenes[S.scene];
+  // 往前找最近有 sub 的場景名稱
+  $('chap').textContent = (sc && sc.sub) ? sc.sub : ($('chap').textContent || '');
+}
+function updateScore(){ $('scoreBox').textContent = '積分 ' + S.score; }
+
+/* ---------- 打字效果 ---------- */
+let typing = null, waitingTap = false;
+function typeText(str){
+  const el = $('text'); el.textContent = ''; let i = 0;
+  clearInterval(typing);
+  $('next').classList.add('hidden');
+  typing = setInterval(() => {
+    i += 1; el.textContent = str.slice(0, i);
+    if (i >= str.length) finishTyping(str);
+  }, 28);
+  el.dataset.full = str;
+}
+function finishTyping(){
+  clearInterval(typing); typing = null;
+  $('text').textContent = $('text').dataset.full || '';
+  $('next').classList.remove('hidden');
+}
+
+/* ---------- 主流程 ---------- */
+function goScene(id){
+  if (!STORY.scenes[id]) { alert('找不到場景：' + id); return; }
+  S.scene = id; S.idx = 0;
+  S.needCard = !!(STORY.scenes[id].title || STORY.scenes[id].sub);
+  save(); run();
+}
+
+function run(){
+  closeOv();
+  const sc = STORY.scenes[S.scene];
+  setChapter(); updateScore();
+  if (S.needCard) return showChapterCard(sc);
+  while (true) {
+    const item = sc.lines[S.idx];
+    if (item === undefined) { // 場景沒寫 go，就停在這
+      waitingTap = false; $('text').textContent = '（這段還沒寫完）'; return;
+    }
+    if (typeof item === 'string') return showLine(item);
+    if (item.bg !== undefined) { S.bg = item.bg; setBg(item.bg); S.idx++; continue; }
+    if (item.show !== undefined) { S.show = item.show.slice(); renderChars(null); S.idx++; continue; }
+    if (item.q) {
+      if (S.done[item.q] !== undefined || !QUESTIONS[item.q]) { S.idx++; continue; } // 答過的不重問
+      save(); return showQuestion(item.q);
+    }
+    if (item.choice) { save(); return showChoice(item.choice); }
+    if (item.go) return goScene(item.go);
+    if (item.result) { save(); return showResult(item.result, true); }
+    S.idx++;
+  }
+}
+
+function showLine(str){
+  const parts = str.split('|');
+  const id = parts[0], text = parts[1] || '', nameOverride = parts[2];
+  const c = STORY.chars[id];
+  const nm = $('name');
+  if (id && c) { nm.textContent = nameOverride || c.name; nm.style.background = c.color; nm.style.color = '#111'; }
+  else nm.textContent = '';
+  $('text').className = id ? '' : 'narr';
+  renderChars(id || null);
+  typeText(text);
+  waitingTap = true;
+  save();
+}
+
+function advance(){
+  if (!$('ov').classList.contains('hidden')) return;
+  if (typing) { finishTyping(); return; }
+  if (!waitingTap) return;
+  waitingTap = false;
+  S.idx++; run();
+}
+$('box').addEventListener('click', advance);
+$('chars').parentElement.addEventListener('click', e => {
+  if (e.target.closest('#top') || e.target.closest('#ov') || e.target.closest('#box')) return;
+  advance();
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === ' ' || e.key === 'Enter') && $('ov').classList.contains('hidden')) { e.preventDefault(); advance(); }
+});
+
+/* ---------- 覆蓋層 ---------- */
+function openOv(html, bottom){
+  const o = $('ov'); o.onclick = null; o.innerHTML = html;
+  o.classList.toggle('bottom', !!bottom); document.body.classList.toggle('ovBottom', !!bottom);
+  o.classList.remove('hidden'); o.scrollTop = 0; return o;
+}
+function closeOv(){ $('ov').classList.add('hidden'); $('ov').classList.remove('bottom'); document.body.classList.remove('ovBottom'); $('ov').innerHTML = ''; }
+
+function showChapterCard(sc){
+  waitingTap = false;
+  $('text').textContent = ''; $('name').textContent = ''; $('next').classList.add('hidden');
+  const o = openOv(`<div class="chapCard">${sc.title ? `<h1>${esc(sc.title)}</h1>` : ''}${sc.sub ? `<h2>${esc(sc.sub)}</h2>` : ''}<p>點一下繼續</p></div>`);
+  o.onclick = () => { o.onclick = null; S.needCard = false; save(); run(); };
+}
+
+function showChoice(opts){
+  waitingTap = false; $('next').classList.add('hidden');
+  // 選項框會蓋住對話框，所以把選擇前的最後一句台詞放進選項框
+  let prev = '';
+  const lines = STORY.scenes[S.scene].lines;
+  for (let k = S.idx - 1; k >= 0; k--) if (typeof lines[k] === 'string') {
+    const [who, txt, nm] = lines[k].split('|');
+    prev = (who && STORY.chars[who] ? (nm || STORY.chars[who].name) + '：' : '') + (txt || '');
+    break;
+  }
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">選擇</span></div>${prev ? `<div class="qprompt">${esc(prev)}</div>` : ''}${opts.map((op, i) => `<button class="btn" data-i="${i}">${esc(op.t)}</button>`).join('')}</div>`, true);
+  o.querySelector('.card').onclick = e => e.stopPropagation();
+  let picked = false;
+  o.querySelectorAll('.btn').forEach(b => b.onclick = (e) => {
+    e.stopPropagation(); if (picked) return; picked = true;
+    const op = opts[+b.dataset.i];
+    if (op.go) goScene(op.go); else { S.idx++; run(); }
+  });
+}
+
+/* 依題號固定打亂選項（每次看到順序一樣） */
+function shuffled(arr, seedStr){
+  let h = 2166136261; for (const ch of seedStr) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const a = arr.map((v, i) => i);
+  for (let i = a.length - 1; i > 0; i--) { h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; const j = h % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function normInput(s, unit){
+  let t = String(s).trim()
+    .replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0))
+    .replace(/[．。]/g, '.').replace(/[％]/g, '%').replace(/\s+/g, '');
+  if (unit) {
+    const u = unit.replace(/\s+/g, '').toLowerCase();
+    const alts = [u, u.replace('³', '3'), u.replace('ml', 'cc')];
+    const low = t.toLowerCase();
+    for (const a of alts) if (a && low.endsWith(a)) { t = t.slice(0, t.length - a.length); break; }
+  }
+  return t;
+}
+
+function showQuestion(id){
+  waitingTap = false; $('next').classList.add('hidden');
+  const q = QUESTIONS[id];
+  const pts = q.pts || 10;
+  const labs = labelsOf(q);
+  const useLab = !!q.labels;
+  const typeName = { single:'單選', multi:'複選', order:'排順序', input:'填答' }[q.type] || '';
+  let body = '';
+  let order = q.options ? q.options.map((v, i) => i) : [];
+  if (q.type === 'single' && !useLab && !q.noShuffle) order = shuffled(q.options, id);
+
+  if (q.type === 'single' || q.type === 'multi') {
+    body = `<div class="opts ${q.options.length >= 4 ? 'two' : ''}">` + order.map(i => `<button class="btn opt" data-i="${i}">${useLab || q.type === 'multi' ? `<span class="lab">${labs[i]}</span>` : ''}${esc(q.options[i])}</button>`).join('') + '</div>';
+    if (q.type === 'multi') body = `<div class="qtip">可以選不只一個，選好按「送出」</div>` + body;
+  } else if (q.type === 'order') {
+    body = `<div class="qtip">依序點選，排出正確順序</div><div class="seq" id="seq"></div><div class="opts two">` +
+      q.options.map((t, i) => `<button class="btn opt" data-i="${i}"><span class="lab">${labs[i]}</span>${esc(t)}</button>`).join('') + '</div>' +
+      `<button class="btn ghost" id="seqReset">重排</button>`;
+  } else if (q.type === 'input') {
+    body = `<div class="inputRow"><input id="ans" inputmode="decimal" autocomplete="off" placeholder="輸入答案">${q.unit ? `<span class="unit">${esc(q.unit)}</span>` : ''}</div>`;
+  }
+  const needSubmit = q.type !== 'single';
+  const figHtml = (q.img ? `<img class="qfig" src="img/${esc(q.img)}" alt="">` : '') +
+    (q.fig && typeof FIGS !== 'undefined' && FIGS[q.fig] ? `<div class="qfig">${FIGS[q.fig]}</div>` : '');
+  const o = openOv(`<div class="card ${figHtml ? 'hasFig' : ''}">
+    <div class="qhead"><span class="tag">理化挑戰・${typeName}</span><span>${S.missed[id] ? '（再試一次，這題已不計分）' : `答對 +${pts}`}</span></div>
+    <div class="qgrid"><div class="qleft">
+      <div class="qprompt">${esc(q.prompt)}</div>
+      ${figHtml}
+    </div><div class="qright">
+      ${body}
+      ${needSubmit ? `<button class="btn primary" id="submit">送出</button>` : ''}
+      <div class="fb" id="fb"></div>
+      ${DEV ? `<div class="dev">【測試模式】答案：${esc(q.answer)}　題號：${id}</div>` : ''}
+    </div></div>
+  </div>`, true);
+  o.onclick = e => e.stopPropagation();
+
+  let sel = new Set(), seq = [], locked = false;
+  const fb = $('fb');
+  const check = (given) => {
+    if (locked) return; locked = true;
+    let ok = false;
+    if (q.type === 'single') ok = given === q.answer;
+    if (q.type === 'multi') ok = [...given].sort().join('') === [...q.answer].sort().join('');
+    if (q.type === 'order') ok = given === q.answer;
+    if (q.type === 'input') ok = normInput(given, q.unit) === normInput(q.answer, q.unit);
+    if (ok) {
+      const gain = S.missed[id] ? 0 : pts;
+      S.done[id] = gain; recalcScore(); updateScore(); save();
+      fb.className = 'fb ok'; fb.textContent = gain ? `答對了！+${gain}` : '答對了！';
+      setTimeout(() => { S.idx++; save(); run(); }, 900);
+    } else {
+      S.missed[id] = true; S.wrong++; save();
+      fb.className = 'fb bad'; fb.textContent = '再想想看～' + (q.hint ? '（提示：' + q.hint + '）' : '');
+      o.querySelector('.qhead span:last-child').textContent = '（再試一次，這題已不計分）';
+      setTimeout(() => { locked = false; }, 700);
+    }
+  };
+  o.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    if (locked) return;
+    const i = +b.dataset.i;
+    if (q.type === 'single') { o.querySelectorAll('.opt').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); check(q.options[i]); }
+    if (q.type === 'multi') { sel.has(i) ? sel.delete(i) : sel.add(i); b.classList.toggle('sel'); }
+    if (q.type === 'order') { if (!seq.includes(i)) { seq.push(i); b.classList.add('sel'); $('seq').textContent = seq.map(k => labs[k]).join(''); } }
+  });
+  const rs = $('seqReset'); if (rs) rs.onclick = () => { seq = []; $('seq').textContent = ''; o.querySelectorAll('.opt').forEach(x => x.classList.remove('sel')); };
+  const sb = $('submit');
+  if (sb) sb.onclick = () => {
+    if (q.type === 'multi') { if (!sel.size) return; check([...sel].map(i => labs[i]).join('')); }
+    if (q.type === 'order') { if (seq.length !== q.options.length) { fb.className='fb bad'; fb.textContent='要全部排完喔'; return; } check(seq.map(i => labs[i]).join('')); }
+    if (q.type === 'input') { const v = $('ans').value; if (!v.trim()) return; check(v); }
+  };
+  const ans = $('ans'); if (ans) { ans.addEventListener('keydown', e => { if (e.key === 'Enter') sb.click(); }); setTimeout(() => ans.focus(), 50); }
+}
+
+/* ---------- 成績卡 ---------- */
+function fmtTime(ms){ const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; return `${m} 分 ${String(s).padStart(2,'0')} 秒`; }
+function showResult(kind, fromStory){
+  waitingTap = false;
+  if (kind === 'clear') S.cleared = true;
+  if (kind === 'end') { S.cleared = true; S.ended = true; }
+  save();
+  const answered = Object.keys(S.done).filter(k => QUESTIONS[k]).length;
+  const total = Object.keys(QUESTIONS).length;
+  const d = new Date();
+  const badge = S.ended ? '<span class="badge clear">故事結束・已通關</span>' : S.cleared ? '<span class="badge clear">恭喜過關！</span>' : '<span class="badge prog">遊戲進行中</span>';
+  const o = openOv(`<div class="card result">
+    ${badge}
+    <div class="who">${esc(S.name || '（未填名字）')}</div>
+    <div class="big">${S.score}</div>
+    <div class="max">積分（滿分 ${MAX_SCORE}）</div>
+    <div class="stats">
+      <div>答過的題目<b>${answered} / ${total}</b></div>
+      <div>答錯次數<b>${S.wrong}</b></div>
+      <div>遊玩時間<b>${fmtTime(S.playMs)}</b></div>
+      <div>第幾次遊玩<b>第 ${S.plays} 次</b></div>
+    </div>
+    <div style="color:var(--dim);font-size:14px">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}　${VERSION}</div>
+    ${fromStory && kind === 'clear' ? '<button class="btn primary" id="rc">繼續故事</button>' : ''}
+    ${fromStory && kind === 'end' ? '<button class="btn primary" id="rnew">重新開始一輪</button>' : ''}
+    ${!fromStory ? '<button class="btn primary" id="rback">回到遊戲</button>' : ''}
+  </div>`);
+  o.onclick = e => e.stopPropagation();
+  if ($('rc')) $('rc').onclick = () => { S.idx++; save(); run(); };
+  if ($('rback')) $('rback').onclick = () => { closeOv(); resumeView(); };
+  if ($('rnew')) $('rnew').onclick = () => confirmRestart();
+}
+
+/* ---------- 選單 ---------- */
+function showMenu(){
+  const devJump = DEV ? `<label class="f">【測試】跳到場景</label><select id="jump" style="width:100%;font-size:18px;padding:8px;border-radius:10px;background:#0f1120;color:#fff">${Object.keys(STORY.scenes).map(k => `<option value="${k}">${k}　${esc(STORY.scenes[k].sub || '')}</option>`).join('')}</select><button class="btn" id="jumpGo">跳過去</button>` : '';
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">選單</span></div>
+    <button class="btn" id="mBack">回到遊戲</button>
+    <button class="btn" id="mScore">看我的成績卡</button>
+    <button class="btn" id="mRestart">重新開始</button>
+    ${devJump}
+    <div style="color:var(--dim);font-size:13px;margin-top:10px">進度會自動存在這台裝置上。${VERSION}</div></div>`);
+  o.onclick = e => { if (e.target === o) { closeOv(); resumeView(); } };
+  $('mBack').onclick = () => { closeOv(); resumeView(); };
+  $('mScore').onclick = () => showResult(null, false);
+  $('mRestart').onclick = () => confirmRestart();
+  if ($('jumpGo')) $('jumpGo').onclick = () => goScene($('jump').value);
+}
+function confirmRestart(){
+  const o = openOv(`<div class="card"><div class="qhead"><span class="tag">重新開始</span></div>
+    <div class="qprompt">確定要從頭開始嗎？目前的積分會歸零。</div>
+    <button class="btn primary" id="yes">確定重新開始</button><button class="btn ghost" id="no">取消</button></div>`);
+  o.onclick = e => e.stopPropagation();
+  $('yes').onclick = () => newGame(S ? S.name : '', (S ? S.plays : 0) + 1);
+  $('no').onclick = () => { closeOv(); resumeView(); };
+}
+$('menuBtn').onclick = e => { e.stopPropagation(); if (S) showMenu(); };
+
+/* 從選單回來時，重畫目前那一格（不前進） */
+function resumeView(){
+  const sc = STORY.scenes[S.scene];
+  if (S.needCard) return showChapterCard(sc);
+  const item = sc.lines[S.idx];
+  if (typeof item === 'string') { showLine(item); finishTyping(); }
+  else run();
+}
+
+/* ---------- 全螢幕 ---------- */
+(function(){
+  const el = document.documentElement;
+  const can = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!can) { $('fsBtn').classList.add('hidden'); return; }
+  $('fsBtn').onclick = e => {
+    e.stopPropagation();
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    try {
+      if (fsEl) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    } catch (err) {}
+  };
+})();
+
+/* ---------- 開始畫面 ---------- */
+function newGame(name, plays){
+  S = fixState({ name, plays: plays || 1, scene: STORY.start, idx: 0, started: Date.now() });
+  S.needCard = true; save();
+  setBg('classroom'); renderChars(null); run();
+}
+function titleScreen(){
+  setBg('chapel');
+  $('chars').innerHTML = '';
+  const has = S && (S.idx > 0 || S.scene !== STORY.start || S.score > 0);
+  const o = openOv(`<div class="card title">
+    <h1>秦宇的愛情</h1><div class="subt">理化文字冒險遊戲</div>
+    ${has ? `<button class="btn primary" id="tCont">繼續遊戲（${esc(S.name)}・積分 ${S.score}）</button>` : ''}
+    <label class="f">座號＋姓名（成績卡會顯示）</label>
+    <input class="name" id="tName" maxlength="20" placeholder="例如：805 王小明" value="${has ? esc(S.name) : ''}">
+    <button class="btn ${has ? '' : 'primary'}" id="tNew">${has ? '從頭開始新遊戲' : '開始遊戲'}</button>
+    <div class="fb bad" id="tErr"></div>
+  </div>`);
+  o.onclick = e => e.stopPropagation();
+  if ($('tCont')) $('tCont').onclick = () => { closeOv(); setBg(S.bg || 'classroom'); renderChars(null); resumeView(); };
+  $('tNew').onclick = () => {
+    const nm = $('tName').value.trim();
+    if (!nm) { $('tErr').textContent = '請先輸入座號＋姓名'; return; }
+    if (has) {
+      const plays = S.plays + 1;
+      openOv(`<div class="card"><div class="qprompt">確定從頭開始？目前進度（積分 ${S.score}）會被清掉。</div>
+        <button class="btn primary" id="y">確定</button><button class="btn ghost" id="n">取消</button></div>`).onclick = e => e.stopPropagation();
+      $('y').onclick = () => newGame(nm, plays);
+      $('n').onclick = () => titleScreen();
+    } else newGame(nm, 1);
+  };
+}
+
+$('ver').textContent = VERSION + (DEV ? '・測試模式' : '');
+if (S) recalcScore();
+titleScreen();
+</script>
+</body>
+</html>
