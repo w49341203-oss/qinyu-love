@@ -136,14 +136,14 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   </div>
   <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
   <div id="ov" class="overlay hidden"></div>
-  <div id="ver">v0.8</div>
+  <div id="ver">v1.1</div>
 </div>
 
-<script src="story.js?v=0.8"></script>
-<script src="figs.js?v=0.8"></script>
+<script src="story.js?v=1.1"></script>
+<script src="figs.js?v=1.1"></script>
 <script>
 'use strict';
-const VERSION = 'v0.8';
+const VERSION = 'v1.1';
 const SAVE_KEY = 'qinyu_love_save_v1';
 const DEV = /[?&]dev=1/.test(location.search);
 const $ = id => document.getElementById(id);
@@ -197,16 +197,20 @@ const charImgOk = {};
 function renderChars(speaker){
   const box = $('chars'); box.innerHTML = '';
   (S.show || []).forEach(id => {
-    const c = STORY.chars[id] || { name:id, color:'#888' };
+    // 'qy:smile' ＝ 秦宇的「smile」版本立繪（img/char_qy_smile.png）；找不到就退回基本版
+    const [base, variant] = String(id).split(':');
+    const c = STORY.chars[base] || { name:base, color:'#888' };
     const d = document.createElement('div');
-    d.className = 'char' + (id === speaker || !speaker ? ' talk' : '');
-    const ph = `<div class="ph">${silhouette(c.color, id)}<span>${esc(c.name)}</span></div>`;
-    if (charImgOk[id] === false) { d.innerHTML = ph; }
+    d.className = 'char' + (base === speaker || !speaker ? ' talk' : '');
+    const ph = `<div class="ph">${silhouette(c.color, base)}<span>${esc(c.name)}</span></div>`;
+    const file = variant && charImgOk[id] !== false ? base + '_' + variant : base;
+    const key = file === base ? base : id;
+    if (charImgOk[key] === false) { d.innerHTML = ph; }
     else {
       const im = new Image(); im.alt = c.name;
-      im.onload = () => { charImgOk[id] = true; };
-      im.onerror = () => { charImgOk[id] = false; d.innerHTML = ph; };
-      im.src = 'img/char_' + id + '.png';
+      im.onload = () => { charImgOk[key] = true; };
+      im.onerror = () => { charImgOk[key] = false; if (key !== base) { renderChars(speaker); } else d.innerHTML = ph; };
+      im.src = 'img/char_' + file + '.png';
       d.appendChild(im);
     }
     box.appendChild(d);
