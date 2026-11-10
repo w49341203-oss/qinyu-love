@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>秦宇的愛情</title>
+<meta name="author" content="蕭妤真">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -152,20 +153,22 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="top">
     <div id="chapWrap"><div id="chap"></div></div>
     <div id="scoreBox">積分 0</div>
+    <button class="iconBtn" id="voiceBtn" title="角色語音">🔇</button>
     <button class="iconBtn" id="fsBtn" title="全螢幕">⛶</button>
     <button class="iconBtn" id="menuBtn" title="選單">☰</button>
   </div>
   <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
   <div id="ov" class="overlay hidden"></div>
-  <div id="ver">v2.5</div>
+  <div id="ver">v2.7</div>
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="story.js?v=2.5"></script>
-<script src="figs.js?v=2.5"></script>
+<script src="story.js?v=2.7"></script>
+<script src="figs.js?v=2.7"></script>
+<script src="voice/list.js?v=2.7"></script>
 <script>
 'use strict';
-const VERSION = 'v2.5';
+const VERSION = 'v2.7';
 const SAVE_KEY = 'qinyu_love_save_v1';
 const DEV = /[?&]dev=1/.test(location.search);
 const $ = id => document.getElementById(id);
@@ -374,15 +377,56 @@ function showLine(str){
   $('text').className = id ? '' : 'narr';
   renderChars(id || null);
   typeText(text);
+  playVoice(id, text);
   waitingTap = true;
   save();
 }
+
+/* ---------- 角色語音（預設關閉；「我」沒有語音） ----------
+   每句語音檔名＝角色＋台詞算出的編號（跟 _測試/export_voice_lines.js 一樣），
+   台詞改過編號就會變，舊語音自動不播，不會念錯。只播 voice/list.js 裡有的檔。 */
+const VOICE_PREF = 'qinyu_love_voice_v1';
+const VOICE_SET = new Set(typeof VOICE_KEYS !== 'undefined' && Array.isArray(VOICE_KEYS) ? VOICE_KEYS : []);
+let voiceOn = false;
+try { voiceOn = localStorage.getItem(VOICE_PREF) === '1'; } catch(e){}
+const voiceAudio = new Audio(); voiceAudio.preload = 'auto';
+let voiceCur = { who: '', text: '' };
+function voiceKey(who, text){
+  let h = 2166136261;
+  for (const ch of who + '|' + text) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return who + '_' + h.toString(16).padStart(8, '0');
+}
+function stopVoice(){ try { voiceAudio.pause(); } catch(e){} }
+function playVoice(who, text){
+  voiceCur = { who: who || '', text: text || '' };
+  stopVoice();
+  if (!voiceOn || !who || who === 'me') return;
+  const key = voiceKey(who, text);
+  if (!VOICE_SET.has(key)) return;
+  voiceAudio.src = 'voice/' + key + '.mp3';
+  const p = voiceAudio.play(); if (p && p.catch) p.catch(() => {});
+}
+function updateVoiceBtn(){
+  $('voiceBtn').textContent = voiceOn ? '🔊' : '🔇';
+  $('voiceBtn').title = voiceOn ? '角色語音：開（點一下關閉）' : '角色語音：關（點一下開啟）';
+}
+$('voiceBtn').onclick = e => {
+  e.stopPropagation();
+  voiceOn = !voiceOn;
+  try { localStorage.setItem(VOICE_PREF, voiceOn ? '1' : '0'); } catch(e){}
+  updateVoiceBtn();
+  // 開啟時，如果畫面上正停在一句台詞，就馬上念這一句
+  if (voiceOn && waitingTap && $('ov').classList.contains('hidden')) playVoice(voiceCur.who, voiceCur.text); else if (!voiceOn) stopVoice();
+};
+updateVoiceBtn();
+if (!VOICE_SET.size) $('voiceBtn').classList.add('hidden');
 
 function advance(){
   if (!$('ov').classList.contains('hidden')) return;
   if (typing) { finishTyping(); return; }
   if (!waitingTap) return;
   waitingTap = false;
+  stopVoice();
   S.idx++; run();
 }
 $('box').addEventListener('click', advance);
@@ -571,7 +615,7 @@ function showResult(kind, fromStory){
       <div>第幾次遊玩<b>第 ${S.plays} 次</b></div>
     </div>
     ${endingListHtml()}
-    <div style="color:var(--dim);font-size:14px">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}　${VERSION}</div>
+    <div style="color:var(--dim);font-size:14px">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}　${VERSION}　© 2026 蕭妤真</div>
     ${fromStory && kind === 'end' && (S.checkpoints || []).length ? '<button class="btn primary" id="rcp">回到分歧點，看看別的結局</button>' : ''}
     ${fromStory && kind === 'end' ? '<button class="btn" id="rnew">重新開始一輪</button>' : ''}
     ${!fromStory ? '<button class="btn primary" id="rback">回到遊戲</button>' : ''}
@@ -649,7 +693,7 @@ function titleScreen(){
   $('chars').innerHTML = '';
   const has = S && (S.idx > 0 || S.scene !== STORY.start || S.score > 0);
   const o = openOv(`<div class="card title">
-    <h1>秦宇的愛情</h1><div class="subt">理化文字冒險遊戲</div>
+    <h1>秦宇的愛情</h1><div class="subt">理化文字冒險遊戲</div><div class="subt" style="margin-top:-18px;font-size:14px">© 2026 蕭妤真　版權所有</div>
     ${has ? `<button class="btn primary" id="tCont">繼續遊戲（${esc(S.name)}・積分 ${S.score}）</button>` : ''}
     <label class="f">座號＋姓名（成績卡會顯示）</label>
     <input class="name" id="tName" maxlength="20" placeholder="例如：805 王小明" value="${has ? esc(S.name) : ''}">
@@ -672,7 +716,7 @@ function titleScreen(){
   };
 }
 
-$('ver').textContent = VERSION + (DEV ? '・測試模式' : '');
+$('ver').textContent = '© 2026 蕭妤真　' + VERSION + (DEV ? '・測試模式' : '');
 if (S) recalcScore();
 titleScreen();
 </script>
