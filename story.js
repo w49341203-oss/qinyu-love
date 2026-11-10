@@ -1001,3 +1001,24 @@ const QUESTIONS = {
   s3c2q8: { type:'single', prompt:'18℃ 時，把水從 50 g 增加到 100 g，下列何者會變多？', options:['食鹽的溶解量','食鹽的溶解度','食鹽的密度','水的密度'], answer:'食鹽的溶解量', hint:'溶解度是「每 100 g 水」能溶多少，不會因為水變多而改變' },
   s3c2q9: { type:'single', prompt:'一杯未飽和的食鹽水，再加入 50 g 的水。下列何者會「變小」？', options:['食鹽水的濃度','食鹽水的質量','水的質量','食鹽的溶解度'], answer:'食鹽水的濃度', hint:'溶質不變，溶液變多' },
 };
+
+/* ---------- 背景音樂：每個場景放哪一首 ----------
+   daily 日常校園、mystery 穿越謎團、sad 感傷、wedding 婚禮。
+   寫字串＝整個場景同一首；寫物件＝依背景換曲（'*' 是預設）。沒寫的場景沿用上一首。
+   出現婚禮插圖（cg: wed_…）時自動換成 wedding。沒結婚的結局都用 sad（結局一律平等）。 */
+STORY.bgm = {
+  s1_ch0: { '*':'daily', stairs:'mystery' },   // 下課 → 樓梯間聽秦宇說「未來的記憶」
+  s1_ch1: 'daily',                             // 實驗室教學妹
+  s1_ch2: 'mystery', s1_ch3: 'mystery', s1_ch4: 'mystery',
+  s1_ch5: 'sad', s1_ch6: 'sad',
+  loop_chicken: 'daily',
+  s2_together: { '*':'daily', lab:'sad' },     // 雞排 → 站在實驗室門外
+  s2_letgo: 'sad', s2_ch2_free: 'sad', s2_ch3_free: 'daily',
+  s2_grab: 'mystery', s2_ch1: 'daily', s2_ch2: 'mystery', s2_ch3: 'daily',
+  s2_lazy: 'sad', s2_lazy_free: 'sad',
+  s2_hard: 'daily', s2_slow: 'daily', s2_award: 'daily', s2_ch4: 'daily', s2_ch4_hard: 'daily',
+  s3_ch1: 'mystery', s3_ch2: 'mystery', s3_ch3: 'mystery',
+  end_you: 'sad', end_qy: 'sad', end_ring: 'sad', end_safe: 'sad', end_pray: 'sad', end_sea: 'sad',
+  fin_you: 'wedding', fin_you_hard: 'wedding', fin_qy: 'wedding', fin_qy_hard: 'wedding',
+  fin_thanks: 'sad', fin_unsaid: 'sad',
+};

@@ -49,6 +49,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #chap:empty{display:none}
 #scoreBox{font-weight:900;font-size:clamp(15px,2.2vw,20px);color:var(--gold);background:rgba(0,0,0,.45);padding:4px 12px;border-radius:999px;border:1px solid rgba(251,191,36,.4)}
 .iconBtn{background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:10px;min-width:40px;height:38px;font-size:18px}
+.iconBtn.off{opacity:.4;filter:grayscale(1)}
 
 /* 對話框 */
 #box{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);width:min(960px,calc(100% - 24px));
@@ -153,22 +154,23 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   <div id="top">
     <div id="chapWrap"><div id="chap"></div></div>
     <div id="scoreBox">積分 0</div>
+    <button class="iconBtn off" id="musicBtn" title="背景音樂">🎵</button>
     <button class="iconBtn" id="voiceBtn" title="角色語音">🔇</button>
     <button class="iconBtn" id="fsBtn" title="全螢幕">⛶</button>
     <button class="iconBtn" id="menuBtn" title="選單">☰</button>
   </div>
   <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
   <div id="ov" class="overlay hidden"></div>
-  <div id="ver">v2.7</div>
+  <div id="ver">v2.8</div>
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="story.js?v=2.7"></script>
-<script src="figs.js?v=2.7"></script>
-<script src="voice/list.js?v=2.7"></script>
+<script src="story.js?v=2.8"></script>
+<script src="figs.js?v=2.8"></script>
+<script src="voice/list.js?v=2.8"></script>
 <script>
 'use strict';
-const VERSION = 'v2.7';
+const VERSION = 'v2.8';
 const SAVE_KEY = 'qinyu_love_save_v1';
 const DEV = /[?&]dev=1/.test(location.search);
 const $ = id => document.getElementById(id);
@@ -196,6 +198,7 @@ function fixState(s){
     cg: typeof s.cg === 'string' ? s.cg : '',                              // 目前顯示的全螢幕插圖
     checkpoints: Array.isArray(s.checkpoints) ? s.checkpoints : [],        // 分歧點存檔（每個選擇前）
     chap: typeof s.chap === 'string' ? s.chap : '',                        // 目前章名
+    bgm: typeof s.bgm === 'string' ? s.bgm : '',                           // 目前的背景音樂（沒指定的場景沿用）
   };
 }
 /* ---------- 分歧點存檔 ----------
@@ -206,7 +209,7 @@ function recordCheckpoint(prompt){
   const cp = {
     key, label: (S.chap || '').trim(), prompt: String(prompt || '').slice(0, 34),
     scene: S.scene, idx: S.idx, flags: JSON.parse(JSON.stringify(S.flags || {})),
-    bg: S.bg, show: (S.show || []).slice(), cg: S.cg || '', t: Date.now(),
+    bg: S.bg, show: (S.show || []).slice(), cg: S.cg || '', bgm: S.bgm || '', t: Date.now(),
   };
   S.checkpoints = (S.checkpoints || []).filter(c => c.key !== key);
   S.checkpoints.push(cp);
@@ -217,6 +220,7 @@ function jumpToCheckpoint(cp){
   S.scene = cp.scene; S.idx = cp.idx; S.needCard = false; S.ended = false;
   S.flags = JSON.parse(JSON.stringify(cp.flags || {}));
   S.bg = cp.bg; S.show = (cp.show || []).slice(); S.cg = cp.cg || ''; S.chap = cp.label || '';
+  if (cp.bgm) S.bgm = cp.bgm;
   setBg(S.bg || 'classroom'); setCg(S.cg); renderChars(null);
   save(); run();
 }
@@ -334,6 +338,7 @@ function run(){
   closeOv();
   const sc = STORY.scenes[S.scene];
   setChapter(); updateScore();
+  inGame = true; updateMusic();
   if (S.needCard) return showChapterCard(sc);
   while (true) {
     const item = sc.lines[S.idx];
@@ -341,13 +346,13 @@ function run(){
       waitingTap = false; $('text').textContent = '（這段還沒寫完）'; return;
     }
     if (typeof item === 'string') return showLine(item);
-    if (item.bg !== undefined) { S.bg = item.bg; setBg(item.bg); S.idx++; continue; }
+    if (item.bg !== undefined) { S.bg = item.bg; setBg(item.bg); updateMusic(); S.idx++; continue; }
     if (item.show !== undefined) { S.show = item.show.slice(); renderChars(null); S.idx++; continue; }
     if (item.q) {
       if (S.done[item.q] !== undefined || !QUESTIONS[item.q]) { S.idx++; continue; } // 答過的不重問
       save(); return showQuestion(item.q);
     }
-    if (item.cg !== undefined) { S.cg = item.cg || ''; setCg(S.cg); S.idx++; continue; }   // {cg:'wed_me'} 顯示插圖、{cg:''} 收起
+    if (item.cg !== undefined) { S.cg = item.cg || ''; setCg(S.cg); updateMusic(); S.idx++; continue; }   // {cg:'wed_me'} 顯示插圖、{cg:''} 收起
     if (item.set) { Object.assign(S.flags, item.set); S.idx++; continue; }
     if (item.calc) {   // {calc:'heart'}：呼叫 story.js 裡 STORY.calc.heart(旗標)，把結果寫回旗標
       const fn = STORY.calc && STORY.calc[item.calc];
@@ -420,6 +425,94 @@ $('voiceBtn').onclick = e => {
 };
 updateVoiceBtn();
 if (!VOICE_SET.size) $('voiceBtn').classList.add('hidden');
+
+/* ---------- 背景音樂（預設關閉；和語音分開的開關） ----------
+   場景對應哪一首寫在 story.js 的 STORY.bgm。用 Web Audio 播放才能無縫循環；
+   角色說話時音樂自動變小聲；切到別的分頁或鎖螢幕時暫停。 */
+const MUSIC_PREF = 'qinyu_love_music_v1', MUSIC_VOL = 0.35, MUSIC_DUCK = 0.35;
+let musicOn = false, inGame = false;
+try { musicOn = localStorage.getItem(MUSIC_PREF) === '1'; } catch(e){}
+let actx = null, musicMaster = null, musicDuck = null, curTrack = '', curSrc = null, curGain = null;
+const musicBufs = {}, musicLoading = {};
+function musicTrack(){
+  if (!S) return '';
+  if (S.cg && S.cg.indexOf('wed') === 0) return 'wedding';          // 婚禮插圖一出現就換婚禮曲
+  const cfg = STORY.bgm && STORY.bgm[S.scene];
+  if (typeof cfg === 'string') return cfg;
+  if (cfg && typeof cfg === 'object') return cfg[S.bg] || cfg['*'] || S.bgm || 'daily';
+  return S.bgm || 'daily';                                          // 沒寫的場景沿用上一首
+}
+function ensureActx(){
+  if (actx) return actx;
+  const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+  actx = new C();
+  musicMaster = actx.createGain(); musicMaster.gain.value = MUSIC_VOL;
+  musicDuck = actx.createGain(); musicDuck.gain.value = 1;
+  musicMaster.connect(musicDuck); musicDuck.connect(actx.destination);
+  return actx;
+}
+function loadTrack(t){
+  if (musicBufs[t]) return Promise.resolve(musicBufs[t]);
+  if (musicLoading[t]) return musicLoading[t];
+  musicLoading[t] = fetch('bgm/bgm_' + t + '.mp3?v=' + VERSION).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(ab => new Promise((res, rej) => actx.decodeAudioData(ab, res, rej)))
+    .then(b => (musicBufs[t] = b)).catch(() => { musicLoading[t] = null; return null; });
+  return musicLoading[t];
+}
+function fadeOutMusic(){
+  if (!curSrc || !actx) return;
+  const now = actx.currentTime, s = curSrc, g = curGain;
+  g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(g.gain.value, now); g.gain.linearRampToValueAtTime(0, now + 1.2);
+  try { s.stop(now + 1.3); } catch(e){}
+  curSrc = null; curGain = null;
+}
+function playMusic(t){
+  if (!musicOn || !t || !ensureActx()) return;
+  if (actx.state === 'suspended' && !document.hidden) actx.resume().catch(() => {});
+  if (t === curTrack && curSrc) return;
+  curTrack = t;
+  loadTrack(t).then(buf => {
+    if (!buf || !musicOn || curTrack !== t || (curSrc && curSrc._t === t)) return;
+    fadeOutMusic();
+    const now = actx.currentTime, src = actx.createBufferSource(), g = actx.createGain();
+    src.buffer = buf; src.loop = true; src._t = t;
+    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(1, now + 1.5);
+    src.connect(g); g.connect(musicMaster); src.start();
+    curSrc = src; curGain = g;
+  });
+}
+function updateMusic(){
+  if (!S) return;
+  const t = musicTrack(); if (t) S.bgm = t;
+  if (musicOn && inGame) playMusic(S.bgm);
+}
+function setDuck(v){
+  if (!actx || !musicDuck) return;
+  const now = actx.currentTime;
+  musicDuck.gain.cancelScheduledValues(now); musicDuck.gain.setValueAtTime(musicDuck.gain.value, now); musicDuck.gain.linearRampToValueAtTime(v, now + 0.3);
+}
+voiceAudio.addEventListener('play', () => setDuck(MUSIC_DUCK));
+voiceAudio.addEventListener('pause', () => setDuck(1));
+voiceAudio.addEventListener('ended', () => setDuck(1));
+function updateMusicBtn(){
+  $('musicBtn').classList.toggle('off', !musicOn);
+  $('musicBtn').title = musicOn ? '背景音樂：開（點一下關閉）' : '背景音樂：關（點一下開啟）';
+}
+$('musicBtn').onclick = e => {
+  e.stopPropagation();
+  musicOn = !musicOn;
+  try { localStorage.setItem(MUSIC_PREF, musicOn ? '1' : '0'); } catch(e){}
+  updateMusicBtn();
+  if (musicOn) { ensureActx(); if (actx) actx.resume().catch(() => {}); if (inGame) { curTrack = ''; updateMusic(); } }
+  else { fadeOutMusic(); curTrack = ''; }
+};
+// iPad／手機：上次開著音樂，重新打開網頁後要等第一次點畫面才能出聲
+document.addEventListener('pointerdown', () => { if (musicOn && actx && actx.state === 'suspended') actx.resume().catch(() => {}); }, true);
+document.addEventListener('visibilitychange', () => {
+  if (!actx) return;
+  if (document.hidden) actx.suspend().catch(() => {}); else if (musicOn) actx.resume().catch(() => {});
+});
+updateMusicBtn();
 
 function advance(){
   if (!$('ov').classList.contains('hidden')) return;
@@ -656,6 +749,7 @@ $('menuBtn').onclick = e => { e.stopPropagation(); if (S) showMenu(); };
 /* 從選單回來時，重畫目前那一格（不前進） */
 function resumeView(){
   const sc = STORY.scenes[S.scene];
+  inGame = true; updateMusic();   // 「繼續遊戲」也走這裡，要接上音樂
   if (S.needCard) return showChapterCard(sc);
   const item = sc.lines[S.idx];
   if (typeof item === 'string') { showLine(item); finishTyping(); }
