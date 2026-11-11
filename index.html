@@ -161,16 +161,16 @@ input.name{width:100%;font-size:22px;padding:12px 14px;border-radius:12px;border
   </div>
   <div id="box"><div id="name"></div><div id="text"></div><div id="next">▼</div></div>
   <div id="ov" class="overlay hidden"></div>
-  <div id="ver">v2.8</div>
+  <div id="ver">v2.9</div>
   <div id="rotate"><div class="phone"></div><b>請把手機或平板轉成橫向</b><span>這個遊戲只能橫著玩。<br>轉了沒反應的話，<br>請關閉螢幕的「直向鎖定」。</span></div>
 </div>
 
-<script src="story.js?v=2.8"></script>
-<script src="figs.js?v=2.8"></script>
-<script src="voice/list.js?v=2.8"></script>
+<script src="story.js?v=2.9"></script>
+<script src="figs.js?v=2.9"></script>
+<script src="voice/list.js?v=2.9"></script>
 <script>
 'use strict';
-const VERSION = 'v2.8';
+const VERSION = 'v2.9';
 const SAVE_KEY = 'qinyu_love_save_v1';
 const DEV = /[?&]dev=1/.test(location.search);
 const $ = id => document.getElementById(id);
@@ -408,7 +408,7 @@ function playVoice(who, text){
   if (!voiceOn || !who || who === 'me') return;
   const key = voiceKey(who, text);
   if (!VOICE_SET.has(key)) return;
-  voiceAudio.src = 'voice/' + key + '.mp3';
+  voiceAudio.src = 'voice/' + key + '.mp3?v=' + VERSION;   // 加版本號：語音重做後不會播到手機快取的舊檔
   const p = voiceAudio.play(); if (p && p.catch) p.catch(() => {});
 }
 function updateVoiceBtn(){
